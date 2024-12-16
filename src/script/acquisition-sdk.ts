@@ -58,6 +58,7 @@ export class AcquisitionStatus {
 }
 
 export class AcquisitionManager {
+    private readonly BASE_URL_PART = "appcenter.ms";
     private _appVersion: string;
     private _clientUniqueId: string;
     private _deploymentKey: string;
@@ -65,7 +66,8 @@ export class AcquisitionManager {
     private _ignoreAppVersion: boolean;
     private _serverUrl: string;
     private _publicPrefixUrl: string = "v0.1/public/codepush/";
-
+    private _statusCode: number;
+    private static _apiCallsDisabled: boolean = false;
     constructor(httpRequester: Http.Requester, configuration: Configuration) {
         this._httpRequester = httpRequester;
 
@@ -80,7 +82,21 @@ export class AcquisitionManager {
         this._ignoreAppVersion = configuration.ignoreAppVersion;
     }
 
+    private isRecoverable = (statusCode: number): boolean => statusCode >= 500 || statusCode === 408 || statusCode === 429;
+
+    private handleRequestFailure() {
+        if (this._serverUrl.includes(this.BASE_URL_PART) && !this.isRecoverable(this._statusCode)) {
+            AcquisitionManager._apiCallsDisabled = true;
+        }
+    }
+
     public queryUpdateWithCurrentPackage(currentPackage: Package, callback?: Callback<RemotePackage | NativeUpdateNotification>): void {
+        if (AcquisitionManager._apiCallsDisabled) {
+            console.log(`[CodePush] Api calls are disabled, skipping API call`);
+            callback(/*error=*/ null, /*remotePackage=*/ null);
+            return;
+        }
+
         if (!currentPackage || !currentPackage.appVersion) {
             throw new CodePushPackageError("Calling common acquisition SDK with incorrect package");  // Unexpected; indicates error in our implementation
         }
@@ -102,8 +118,10 @@ export class AcquisitionManager {
                 return;
             }
 
-            if (response.statusCode !== 200) {
+            if (response.statusCode < 200 || response.statusCode >= 300) {
                 let errorMessage: any;
+                this._statusCode = response.statusCode;
+                this.handleRequestFailure();
                 if (response.statusCode === 0) {
                     errorMessage = `Couldn't send request to ${requestUrl}, xhr.statusCode = 0 was returned. One of the possible reasons for that might be connection problems. Please, check your internet connection.`;
                 } else {
@@ -147,6 +165,12 @@ export class AcquisitionManager {
     }
 
     public reportStatusDeploy(deployedPackage?: Package, status?: string, previousLabelOrAppVersion?: string, previousDeploymentKey?: string, callback?: Callback<void>): void {
+        if (AcquisitionManager._apiCallsDisabled) {
+            console.log(`[CodePush] Api calls are disabled, skipping API call`);
+            callback(/*error*/ null, /*not used*/ null);
+            return;
+        }
+
         var url: string = this._serverUrl + this._publicPrefixUrl + "report_status/deploy";
         var body: DeploymentStatusReport = {
             app_version: this._appVersion,
@@ -196,7 +220,9 @@ export class AcquisitionManager {
                     return;
                 }
 
-                if (response.statusCode !== 200) {
+                if (response.statusCode < 200 || response.statusCode >= 300) {
+                    this._statusCode = response.statusCode;
+                    this.handleRequestFailure();
                     callback(new CodePushHttpError(response.statusCode + ": " + response.body), /*not used*/ null);
                     return;
                 }
@@ -207,6 +233,12 @@ export class AcquisitionManager {
     }
 
     public reportStatusDownload(downloadedPackage: Package, callback?: Callback<void>): void {
+        if (AcquisitionManager._apiCallsDisabled) {
+            console.log(`[CodePush] Api calls are disabled, skipping API call`);
+            callback(/*error*/ null, /*not used*/ null);
+            return;
+        }
+
         var url: string = this._serverUrl + this._publicPrefixUrl + "report_status/download";
         var body: DownloadReport = {
             client_unique_id: this._clientUniqueId,
@@ -221,7 +253,9 @@ export class AcquisitionManager {
                     return;
                 }
 
-                if (response.statusCode !== 200) {
+                if (response.statusCode < 200 || response.statusCode >= 300) {
+                    this._statusCode = response.statusCode;
+                    this.handleRequestFailure();
                     callback(new CodePushHttpError(response.statusCode + ": " + response.body), /*not used*/ null);
                     return;
                 }
