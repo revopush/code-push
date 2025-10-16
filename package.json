@@ -1,5 +1,5 @@
 {
-  "name": "code-push",
+  "name": "@revopush/code-push",
   "version": "4.2.3",
   "description": "Management SDK for the CodePush service",
   "main": "script/index.js",
@@ -18,11 +18,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/Microsoft/code-push.git"
+    "url": "https://github.com/revopush/code-push.git"
   },
   "author": "Microsoft Corporation",
   "license": "MIT",
-  "homepage": "https://microsoft.github.io/code-push",
+  "homepage": "https://github.com/revopush/code-push",
   "dependencies": {
     "appcenter-file-upload-client": "0.1.0",
     "proxy-agent": "^6.3.0",
