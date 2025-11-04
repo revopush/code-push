@@ -71,6 +71,10 @@ export interface UpdateCheckResponse {
   should_run_binary_version?: boolean;
   update_app_version?: boolean;
   is_mandatory?: boolean;
+  bundle_diff_blob_url?: string;
+  asset_download_url?: string;
+  asset_hash?: string;
+  bundle_hash?: string;
 }
 
 /*in*/
@@ -81,6 +85,7 @@ export interface UpdateCheckRequest {
   is_companion?: boolean;
   label?: string;
   package_hash?: string;
+  asset_hash?: string;
 }
 
 /*out*/
