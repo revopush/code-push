@@ -27,10 +27,13 @@ export interface Package {
     isMandatory: boolean;
     packageHash: string;
     packageSize: number;
+    assetHash?: string;
 }
 
 export interface RemotePackage extends Package {
     downloadUrl: string;
+    bundleDiffBlobUrl?: string;
+    assetDownloadUrl?: string;
 }
 
 export interface NativeUpdateNotification {
@@ -105,6 +108,7 @@ export class AcquisitionManager {
             deployment_key: this._deploymentKey,
             app_version: currentPackage.appVersion,
             package_hash: currentPackage.packageHash,
+            asset_hash: currentPackage?.assetHash,
             is_companion: this._ignoreAppVersion,
             label: currentPackage.label,
             client_unique_id: this._clientUniqueId
@@ -157,7 +161,10 @@ export class AcquisitionManager {
                 isMandatory: updateInfo.is_mandatory,
                 packageHash: updateInfo.package_hash,
                 packageSize: updateInfo.package_size,
-                downloadUrl: updateInfo.download_url
+                downloadUrl: updateInfo.download_url,
+                bundleDiffBlobUrl: updateInfo.bundle_diff_blob_url,
+                assetDownloadUrl: updateInfo.asset_download_url,
+                assetHash: updateInfo.asset_hash,
             };
 
             callback(/*error=*/ null, remotePackage);
