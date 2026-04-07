@@ -50,6 +50,7 @@ export interface Callback<T> { (error: Error, parameter: T): void; }
 
 export interface Configuration {
     appVersion: string;
+    buildNumber?: string;
     clientUniqueId: string;
     deploymentKey: string;
     serverUrl: string;
@@ -62,8 +63,9 @@ export class AcquisitionStatus {
 }
 
 export class AcquisitionManager {
-    private readonly BASE_URL_PART = "appcenter.ms";
+    private readonly BASE_URL_PART = "revopush.org";
     private _appVersion: string;
+    private _buildNumber: string;
     private _clientUniqueId: string;
     private _deploymentKey: string;
     private _httpRequester: Http.Requester;
@@ -81,6 +83,7 @@ export class AcquisitionManager {
         }
 
         this._appVersion = configuration.appVersion;
+        this._buildNumber = configuration.buildNumber;
         this._clientUniqueId = configuration.clientUniqueId;
         this._deploymentKey = configuration.deploymentKey;
         this._ignoreAppVersion = configuration.ignoreAppVersion;
@@ -183,6 +186,7 @@ export class AcquisitionManager {
         var url: string = this._serverUrl + this._publicPrefixUrl + "report_status/deploy";
         var body: DeploymentStatusReport = {
             app_version: this._appVersion,
+            build_number: this._buildNumber,
             deployment_key: this._deploymentKey
         };
 
@@ -193,6 +197,7 @@ export class AcquisitionManager {
         if (deployedPackage) {
             body.label = deployedPackage.label;
             body.app_version = deployedPackage.appVersion;
+            body.build_number = deployedPackage.buildNumber;
 
             switch (status) {
                 case AcquisitionStatus.DeploymentSucceeded:
