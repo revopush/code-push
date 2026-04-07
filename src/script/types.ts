@@ -80,6 +80,7 @@ export interface UpdateCheckResponse {
 /*in*/
 export interface UpdateCheckRequest {
   app_version: string;
+  build_number?: string;
   client_unique_id?: string;
   deployment_key: string;
   is_companion?: boolean;

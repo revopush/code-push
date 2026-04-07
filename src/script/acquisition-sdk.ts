@@ -24,6 +24,7 @@ export interface Package {
     description: string;
     label: string;
     appVersion: string;
+    buildNumber?: string;
     isMandatory: boolean;
     packageHash: string;
     packageSize: number;
@@ -107,6 +108,7 @@ export class AcquisitionManager {
         var updateRequest: UpdateCheckRequest = {
             deployment_key: this._deploymentKey,
             app_version: currentPackage.appVersion,
+            build_number: currentPackage.buildNumber,
             package_hash: currentPackage.packageHash,
             asset_hash: currentPackage?.assetHash,
             is_companion: this._ignoreAppVersion,
