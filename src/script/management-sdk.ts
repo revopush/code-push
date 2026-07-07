@@ -6,7 +6,7 @@ import * as yazl from "yazl";
 import Adapter from "../utils/adapter/adapter"
 import RequestManager from "../utils/request-manager"
 import { CodePushUnauthorizedError } from "./code-push-error"
-import FileUploadClient, { IProgress } from "appcenter-file-upload-client";
+import FileUploadClient, { IProgress } from "../utils/file-upload-client";
 
 import { AccessKey, AccessKeyRequest, Account, App, AppCreationRequest, CollaboratorMap, Deployment, DeploymentMetrics, Headers, Package, PackageInfo, ReleaseUploadAssets, UploadReleaseProperties, CodePushError } from "./types";
 
