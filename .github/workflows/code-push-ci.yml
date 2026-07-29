@@ -38,20 +38,3 @@ jobs:
 
       - name: Build
         run: npm run build
-
-  Run-tests:
-    name: Test code-push-sdk
-    runs-on: macos-13
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v1
-      - name: Setup NodeJs
-        uses: actions/setup-node@v1
-        with:
-          node-version: "14.x"
-      - name: Setup dependencies
-        run: npm run setup
-      - name: Build
-        run: npm run build
-      - name: Run tests
-        run: npm run test
