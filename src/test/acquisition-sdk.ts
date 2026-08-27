@@ -34,7 +34,13 @@ var scriptUpdateResult: acquisitionSdk.RemotePackage = {
     appVersion: latestPackage.target_binary_range,
     isMandatory: latestPackage.is_mandatory,
     packageHash: latestPackage.package_hash,
-    packageSize: latestPackage.package_size
+    packageSize: latestPackage.package_size,
+    bundleDiffBlobUrl: undefined,
+    assetDownloadUrl: undefined,
+    assetHash: undefined,
+    bundleHash: undefined,
+    bundleBlobUrl: undefined,
+    basePackage: undefined,
 };
 
 var nativeUpdateResult: acquisitionSdk.NativeUpdateNotification = {
@@ -291,6 +297,60 @@ describe("Acquisition SDK", () => {
         done();
     })
 
+});
+
+describe("Acquisition SDK: shadow base fields", () => {
+    function respondWith(updateInfo: any, callback: (err: Error, remote: any) => void): void {
+        const requester = {
+            request: (verb: number, url: string, cb: any) => {
+                cb(null, { statusCode: 200, body: JSON.stringify({ update_info: updateInfo }) });
+            }
+        };
+        const sdk = new acquisitionSdk.AcquisitionManager(<any>requester, configuration);
+        sdk.queryUpdateWithCurrentPackage(templateCurrentPackage, <any>callback);
+    }
+
+    const baseInfo = {
+        is_available: true,
+        target_binary_range: "1.5.0",
+        package_hash: "newhash",
+        download_url: "http://example.com/full.zip",
+        bundle_diff_blob_url: "http://example.com/bdiff.zip"
+    };
+
+    it("maps bundle_hash and bundle_blob_url", (done: Mocha.Done) => {
+        respondWith({ ...baseInfo, bundle_hash: "bh1", bundle_blob_url: "http://example.com/b.zip" },
+            (err, remote) => {
+                assert.strictEqual(err, null);
+                assert.strictEqual(remote.bundleHash, "bh1");
+                assert.strictEqual(remote.bundleBlobUrl, "http://example.com/b.zip");
+                done();
+            });
+    });
+
+    it("maps base_package", (done: Mocha.Done) => {
+        respondWith({ ...baseInfo, base_package: { bundle_hash: "basehash", bundle_blob_url: "http://example.com/base.zip" } },
+            (err, remote) => {
+                assert.strictEqual(remote.basePackage.bundleHash, "basehash");
+                assert.strictEqual(remote.basePackage.bundleBlobUrl, "http://example.com/base.zip");
+                done();
+            });
+    });
+
+    it("leaves basePackage undefined when base_package is absent", (done: Mocha.Done) => {
+        respondWith(baseInfo, (err, remote) => {
+            assert.strictEqual(remote.basePackage, undefined);
+            done();
+        });
+    });
+
+    it("maps base_package with no bundle_blob_url", (done: Mocha.Done) => {
+        respondWith({ ...baseInfo, base_package: { bundle_hash: "basehash" } }, (err, remote) => {
+            assert.strictEqual(remote.basePackage.bundleHash, "basehash");
+            assert.strictEqual(remote.basePackage.bundleBlobUrl, undefined);
+            done();
+        });
+    });
 });
 
 function clone<T>(initialObject: T): T {

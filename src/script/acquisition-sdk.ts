@@ -17,6 +17,11 @@ export module Http {
     }
 }
 
+export interface BasePackage {
+    bundleHash: string;
+    bundleBlobUrl?: string;
+}
+
 // All fields are non-nullable, except when retrieving the currently running package on the first run of the app,
 // in which case only the appVersion is compulsory
 export interface Package {
@@ -35,6 +40,9 @@ export interface RemotePackage extends Package {
     downloadUrl: string;
     bundleDiffBlobUrl?: string;
     assetDownloadUrl?: string;
+    bundleHash?: string;
+    bundleBlobUrl?: string;
+    basePackage?: BasePackage;
 }
 
 export interface NativeUpdateNotification {
@@ -170,6 +178,14 @@ export class AcquisitionManager {
                 bundleDiffBlobUrl: updateInfo.bundle_diff_blob_url,
                 assetDownloadUrl: updateInfo.asset_download_url,
                 assetHash: updateInfo.asset_hash,
+                bundleHash: updateInfo.bundle_hash,
+                bundleBlobUrl: updateInfo.bundle_blob_url,
+                basePackage: updateInfo.base_package
+                    ? {
+                          bundleHash: updateInfo.base_package.bundle_hash,
+                          bundleBlobUrl: updateInfo.base_package.bundle_blob_url,
+                      }
+                    : undefined,
             };
 
             callback(/*error=*/ null, remotePackage);
