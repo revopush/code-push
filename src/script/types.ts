@@ -61,8 +61,7 @@ export interface PackageInfo {
 
 /*out*/
 export interface BasePackageInfo {
-  bundle_hash: string;
-  bundle_blob_url?: string;
+  package_hash: string;
 }
 
 /*out*/

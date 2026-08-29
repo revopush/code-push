@@ -18,8 +18,7 @@ export module Http {
 }
 
 export interface BasePackage {
-    bundleHash: string;
-    bundleBlobUrl?: string;
+    packageHash: string;
 }
 
 // All fields are non-nullable, except when retrieving the currently running package on the first run of the app,
@@ -181,10 +180,7 @@ export class AcquisitionManager {
                 bundleHash: updateInfo.bundle_hash,
                 bundleBlobUrl: updateInfo.bundle_blob_url,
                 basePackage: updateInfo.base_package
-                    ? {
-                          bundleHash: updateInfo.base_package.bundle_hash,
-                          bundleBlobUrl: updateInfo.base_package.bundle_blob_url,
-                      }
+                    ? { packageHash: updateInfo.base_package.package_hash }
                     : undefined,
             };
 

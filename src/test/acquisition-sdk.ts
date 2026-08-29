@@ -329,12 +329,10 @@ describe("Acquisition SDK: shadow base fields", () => {
     });
 
     it("maps base_package", (done: Mocha.Done) => {
-        respondWith({ ...baseInfo, base_package: { bundle_hash: "basehash", bundle_blob_url: "http://example.com/base.zip" } },
-            (err, remote) => {
-                assert.strictEqual(remote.basePackage.bundleHash, "basehash");
-                assert.strictEqual(remote.basePackage.bundleBlobUrl, "http://example.com/base.zip");
-                done();
-            });
+        respondWith({ ...baseInfo, base_package: { package_hash: "basehash" } }, (err, remote) => {
+            assert.strictEqual(remote.basePackage.packageHash, "basehash");
+            done();
+        });
     });
 
     it("leaves basePackage undefined when base_package is absent", (done: Mocha.Done) => {
@@ -344,13 +342,6 @@ describe("Acquisition SDK: shadow base fields", () => {
         });
     });
 
-    it("maps base_package with no bundle_blob_url", (done: Mocha.Done) => {
-        respondWith({ ...baseInfo, base_package: { bundle_hash: "basehash" } }, (err, remote) => {
-            assert.strictEqual(remote.basePackage.bundleHash, "basehash");
-            assert.strictEqual(remote.basePackage.bundleBlobUrl, undefined);
-            done();
-        });
-    });
 });
 
 function clone<T>(initialObject: T): T {
