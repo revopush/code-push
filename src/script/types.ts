@@ -60,6 +60,11 @@ export interface PackageInfo {
 }
 
 /*out*/
+export interface BasePackageInfo {
+  package_hash: string;
+}
+
+/*out*/
 export interface UpdateCheckResponse {
   download_url?: string;
   description?: string;
@@ -76,6 +81,8 @@ export interface UpdateCheckResponse {
   asset_download_url?: string;
   asset_hash?: string;
   bundle_hash?: string;
+  bundle_blob_url?: string;
+  base_package?: BasePackageInfo;
 }
 
 /*in*/
