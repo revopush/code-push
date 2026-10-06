@@ -1,5 +1,8 @@
 import superagent = require("superagent");
-import { ProxyAgent } from "proxy-agent";
+import { Agent } from "http";
+import { HttpProxyAgent } from "http-proxy-agent";
+import { HttpsProxyAgent } from "https-proxy-agent";
+import { SocksProxyAgent } from "socks-proxy-agent";
 import { CodePushUnauthorizedError } from "../script/code-push-error"
 import { CodePushError, Headers } from "../script/types";
 
@@ -49,10 +52,16 @@ class RequestManager {
 
     private makeApiRequest(method: string, endpoint: string, requestBody: string, expectResponseBody: boolean, contentType: string): Promise<JsonResponse> {
         return new Promise<any>((resolve, reject) => {
-            var request: superagent.Request = (<any>superagent)[method](this._serverUrl + endpoint);
+            var url: string = this._serverUrl + endpoint;
+            var request: superagent.Request = (<any>superagent)[method](url);
 
             if (this._proxy) {
-                (<superagent.SuperAgentRequest>request).agent(new ProxyAgent({ getProxyForUrl: () => this._proxy }))
+                try {
+                    (<superagent.SuperAgentRequest>request).agent(RequestManager.createProxyAgent(this._proxy, url));
+                } catch (err) {
+                    reject(this.getCodePushError(err));
+                    return;
+                }
             }
 
             this.attachCredentials(request);
@@ -94,6 +103,27 @@ class RequestManager {
                 }
             });
         })
+    }
+
+    // Picks the agent the same way proxy-agent did, minus PAC support: proxy-agent
+    // pulled in pac-proxy-agent -> get-uri -> basic-ftp for every consumer.
+    private static createProxyAgent(proxy: string, targetUrl: string): Agent {
+        const proxyProtocol = new URL(proxy).protocol.replace(":", "");
+        const secureEndpoint = new URL(targetUrl).protocol === "https:";
+
+        switch (proxyProtocol) {
+            case "http":
+            case "https":
+                return secureEndpoint ? new HttpsProxyAgent(proxy) : new HttpProxyAgent(proxy);
+            case "socks":
+            case "socks4":
+            case "socks4a":
+            case "socks5":
+            case "socks5h":
+                return new SocksProxyAgent(proxy);
+            default:
+                throw new Error(`Unsupported protocol for proxy URL: ${proxy}`);
+        }
     }
 
     private getCodePushError(error: any, response?: superagent.Response): CodePushError {
