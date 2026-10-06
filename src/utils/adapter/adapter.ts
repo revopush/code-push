@@ -25,7 +25,6 @@ class Adapter {
     }
 
     public toLegacyAccessKeyList(apiTokens: adapterTypes.ApiTokensGetResponse[]): sdkTypes.AccessKey[] {
-        console.log(apiTokens);
         const accessKeyList: sdkTypes.AccessKey[] = apiTokens.map((apiToken) => {
             const accessKey: sdkTypes.AccessKey = {
                 createdTime: Date.parse(apiToken.created_at),
