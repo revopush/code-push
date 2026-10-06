@@ -62,15 +62,16 @@ class RequestManager {
             var request: superagent.Request = (<any>superagent)[method](url);
 
             if (this._proxy) {
+                var proxiedRequest = <superagent.SuperAgentRequest>request;
                 try {
-                    var proxiedRequest = <superagent.SuperAgentRequest>request;
                     proxiedRequest.agent(this.getProxyAgent(url));
-                    // superagent keeps the agent across redirects; re-pick it in case the redirect switched http <-> https.
-                    proxiedRequest.on("redirect", () => proxiedRequest.agent(this.getProxyAgent(proxiedRequest.url)));
                 } catch (err) {
                     reject(this.getCodePushError(err));
                     return;
                 }
+
+                // superagent reuses the agent on redirect, so re-pick it in case the scheme changed.
+                proxiedRequest.on("redirect", () => proxiedRequest.agent(this.getProxyAgent(proxiedRequest.url)));
             }
 
             this.attachCredentials(request);
@@ -122,9 +123,10 @@ class RequestManager {
         return new URL(targetUrl).protocol === "https:" ? this._proxyAgents.https : this._proxyAgents.http;
     }
 
-    // Mirrors proxy-agent's selection without PAC support; proxy-agent pulls in basic-ftp via pac-proxy-agent -> get-uri.
+    // Same agent selection as proxy-agent, minus PAC (its dependencies pull in basic-ftp).
     private static createProxyAgents(proxy: string): ProxyAgents {
-        switch (new URL(proxy).protocol) {
+        const proxyUrl = new URL(proxy);
+        switch (proxyUrl.protocol) {
             case "http:":
             case "https:":
                 return { http: new HttpProxyAgent(proxy), https: new HttpsProxyAgent(proxy) };
@@ -137,7 +139,10 @@ class RequestManager {
                 return { http: socksAgent, https: socksAgent };
             }
             default:
-                throw new Error(`Unsupported protocol for proxy URL: ${proxy}`);
+                // Strip credentials: the CLI prints this message.
+                proxyUrl.username = "";
+                proxyUrl.password = "";
+                throw new Error(`Unsupported protocol for proxy URL: ${proxyUrl.href}`);
         }
     }
 
