@@ -11,6 +11,11 @@ interface JsonResponse {
     body?: any;
 }
 
+interface ProxyAgents {
+    http: Agent;
+    https: Agent;
+}
+
 class RequestManager {
     public static SERVER_URL = "https://api.appcenter.ms/v0.1";
 
@@ -24,6 +29,7 @@ class RequestManager {
     private _serverUrl: string;
     private _customHeaders: Headers;
     private _proxy: string;
+    private _proxyAgents: ProxyAgents;
 
     constructor(accessKey: string, customHeaders?: Headers, serverUrl?: string, proxy?: string) {
         if (!accessKey) throw new CodePushUnauthorizedError("A token must be specified.");
@@ -57,7 +63,10 @@ class RequestManager {
 
             if (this._proxy) {
                 try {
-                    (<superagent.SuperAgentRequest>request).agent(RequestManager.createProxyAgent(this._proxy, url));
+                    var proxiedRequest = <superagent.SuperAgentRequest>request;
+                    proxiedRequest.agent(this.getProxyAgent(url));
+                    // superagent keeps the agent across redirects; re-pick it in case the redirect switched http <-> https.
+                    proxiedRequest.on("redirect", () => proxiedRequest.agent(this.getProxyAgent(proxiedRequest.url)));
                 } catch (err) {
                     reject(this.getCodePushError(err));
                     return;
@@ -105,22 +114,28 @@ class RequestManager {
         })
     }
 
-    // Picks the agent the same way proxy-agent did, minus PAC support: proxy-agent
-    // pulled in pac-proxy-agent -> get-uri -> basic-ftp for every consumer.
-    private static createProxyAgent(proxy: string, targetUrl: string): Agent {
-        const proxyProtocol = new URL(proxy).protocol.replace(":", "");
-        const secureEndpoint = new URL(targetUrl).protocol === "https:";
+    private getProxyAgent(targetUrl: string): Agent {
+        if (!this._proxyAgents) {
+            this._proxyAgents = RequestManager.createProxyAgents(this._proxy);
+        }
 
-        switch (proxyProtocol) {
-            case "http":
-            case "https":
-                return secureEndpoint ? new HttpsProxyAgent(proxy) : new HttpProxyAgent(proxy);
-            case "socks":
-            case "socks4":
-            case "socks4a":
-            case "socks5":
-            case "socks5h":
-                return new SocksProxyAgent(proxy);
+        return new URL(targetUrl).protocol === "https:" ? this._proxyAgents.https : this._proxyAgents.http;
+    }
+
+    // Mirrors proxy-agent's selection without PAC support; proxy-agent pulls in basic-ftp via pac-proxy-agent -> get-uri.
+    private static createProxyAgents(proxy: string): ProxyAgents {
+        switch (new URL(proxy).protocol) {
+            case "http:":
+            case "https:":
+                return { http: new HttpProxyAgent(proxy), https: new HttpsProxyAgent(proxy) };
+            case "socks:":
+            case "socks4:":
+            case "socks4a:":
+            case "socks5:":
+            case "socks5h:": {
+                const socksAgent = new SocksProxyAgent(proxy);
+                return { http: socksAgent, https: socksAgent };
+            }
             default:
                 throw new Error(`Unsupported protocol for proxy URL: ${proxy}`);
         }
