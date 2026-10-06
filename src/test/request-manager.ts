@@ -49,6 +49,14 @@ describe("Request Manager proxy agents", () => {
         );
     });
 
+    it("does not leak proxy credentials when the proxy URL is malformed", () => {
+        const manager = new RequestManager("dummyAccessKey", null, "http://localhost", "http://user:secret@[proxy.local:8080");
+        return manager.get("/endpoint").then(
+            () => assert.fail("Expected the request to be rejected"),
+            (error: any) => assert.strictEqual(error.message, "Invalid proxy URL")
+        );
+    });
+
     it("re-picks the proxy agent when a redirect switches from http to https", () => {
         const connectTargets: string[] = [];
         // Plain-HTTP requests reach the proxy directly: redirect them to https.

@@ -125,7 +125,14 @@ class RequestManager {
 
     // Same agent selection as proxy-agent, minus PAC (its dependencies pull in basic-ftp).
     private static createProxyAgents(proxy: string): ProxyAgents {
-        const proxyUrl = new URL(proxy);
+        let proxyUrl: URL;
+        try {
+            proxyUrl = new URL(proxy);
+        } catch {
+            // Older Node versions put the whole input, credentials included, in the error message.
+            throw new Error("Invalid proxy URL");
+        }
+
         switch (proxyUrl.protocol) {
             case "http:":
             case "https:":
