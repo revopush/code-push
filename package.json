@@ -1,6 +1,6 @@
 {
   "name": "@revopush/code-push",
-  "version": "4.6.0",
+  "version": "4.7.0",
   "description": "Management SDK for the CodePush service",
   "main": "script/index.js",
   "types": "script/index.d.ts",
@@ -24,9 +24,11 @@
   "license": "MIT",
   "homepage": "https://github.com/revopush/code-push",
   "dependencies": {
-    "proxy-agent": "^6.3.0",
+    "http-proxy-agent": "^7.0.2",
+    "https-proxy-agent": "^7.0.6",
     "recursive-fs": "^2.1.0",
     "slash": "^3.0.0",
+    "socks-proxy-agent": "^8.0.5",
     "superagent": "^10.3.0",
     "yazl": "^2.5.1"
   },

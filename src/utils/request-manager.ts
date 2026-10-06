@@ -1,11 +1,19 @@
 import superagent = require("superagent");
-import { ProxyAgent } from "proxy-agent";
+import { Agent } from "http";
+import { HttpProxyAgent } from "http-proxy-agent";
+import { HttpsProxyAgent } from "https-proxy-agent";
+import { SocksProxyAgent } from "socks-proxy-agent";
 import { CodePushUnauthorizedError } from "../script/code-push-error"
 import { CodePushError, Headers } from "../script/types";
 
 interface JsonResponse {
     headers: Headers;
     body?: any;
+}
+
+interface ProxyAgents {
+    http: Agent;
+    https: Agent;
 }
 
 class RequestManager {
@@ -21,6 +29,7 @@ class RequestManager {
     private _serverUrl: string;
     private _customHeaders: Headers;
     private _proxy: string;
+    private _proxyAgents: ProxyAgents;
 
     constructor(accessKey: string, customHeaders?: Headers, serverUrl?: string, proxy?: string) {
         if (!accessKey) throw new CodePushUnauthorizedError("A token must be specified.");
@@ -49,10 +58,20 @@ class RequestManager {
 
     private makeApiRequest(method: string, endpoint: string, requestBody: string, expectResponseBody: boolean, contentType: string): Promise<JsonResponse> {
         return new Promise<any>((resolve, reject) => {
-            var request: superagent.Request = (<any>superagent)[method](this._serverUrl + endpoint);
+            var url: string = this._serverUrl + endpoint;
+            var request: superagent.Request = (<any>superagent)[method](url);
 
             if (this._proxy) {
-                (<superagent.SuperAgentRequest>request).agent(new ProxyAgent({ getProxyForUrl: () => this._proxy }))
+                var proxiedRequest = <superagent.SuperAgentRequest>request;
+                try {
+                    proxiedRequest.agent(this.getProxyAgent(url));
+                } catch (err) {
+                    reject(this.getCodePushError(err));
+                    return;
+                }
+
+                // superagent reuses the agent on redirect, so re-pick it in case the scheme changed.
+                proxiedRequest.on("redirect", () => proxiedRequest.agent(this.getProxyAgent(proxiedRequest.url)));
             }
 
             this.attachCredentials(request);
@@ -94,6 +113,44 @@ class RequestManager {
                 }
             });
         })
+    }
+
+    private getProxyAgent(targetUrl: string): Agent {
+        if (!this._proxyAgents) {
+            this._proxyAgents = RequestManager.createProxyAgents(this._proxy);
+        }
+
+        return new URL(targetUrl).protocol === "https:" ? this._proxyAgents.https : this._proxyAgents.http;
+    }
+
+    // Same agent selection as proxy-agent, minus PAC (its dependencies pull in basic-ftp).
+    private static createProxyAgents(proxy: string): ProxyAgents {
+        let proxyUrl: URL;
+        try {
+            proxyUrl = new URL(proxy);
+        } catch {
+            // Older Node versions put the whole input, credentials included, in the error message.
+            throw new Error("Invalid proxy URL");
+        }
+
+        switch (proxyUrl.protocol) {
+            case "http:":
+            case "https:":
+                return { http: new HttpProxyAgent(proxy), https: new HttpsProxyAgent(proxy) };
+            case "socks:":
+            case "socks4:":
+            case "socks4a:":
+            case "socks5:":
+            case "socks5h:": {
+                const socksAgent = new SocksProxyAgent(proxy);
+                return { http: socksAgent, https: socksAgent };
+            }
+            default:
+                // Strip credentials: the CLI prints this message.
+                proxyUrl.username = "";
+                proxyUrl.password = "";
+                throw new Error(`Unsupported protocol for proxy URL: ${proxyUrl.href}`);
+        }
     }
 
     private getCodePushError(error: any, response?: superagent.Response): CodePushError {
